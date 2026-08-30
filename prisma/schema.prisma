@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProductType {
+  DIGITAL
+  PHYSICAL
+  SERVICE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+}
+
+enum PaymentProvider {
+  MANUAL
+  STARS
+}
+
+model ShopSettings {
+  id              String   @id @default(cuid())
+  name            String
+  welcomeMessage  String
+  currency        String   @default("EUR")
+  checkoutEnabled Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  sortOrder Int       @default(0)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([sortOrder])
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @default("")
+  price       Int
+  currency    String
+  type        ProductType
+  stock       Int?
+  active      Boolean     @default(true)
+  imageUrl    String?
+  categoryId  String?
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([active])
+  @@index([categoryId])
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  telegramId String   @unique
+  firstName  String
+  lastName   String?
+  username   String?
+  orders     Order[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Order {
+  id              String          @id @default(cuid())
+  customerId      String
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  status          OrderStatus     @default(PENDING)
+  paymentProvider PaymentProvider @default(MANUAL)
+  currency        String
+  total           Int
+  shippingName    String?
+  shippingAddress String?
+  shippingCity    String?
+  shippingPostal  String?
+  shippingCountry String?
+  note            String?
+  items           OrderItem[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  title     String
+  quantity  Int
+  unitPrice Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
